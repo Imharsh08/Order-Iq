@@ -171,5 +171,3 @@ Suitable for:
 - Retail Operations  
 
 ---
-
-# 📁 Project Structure
