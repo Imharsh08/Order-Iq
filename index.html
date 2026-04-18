@@ -1,0 +1,2573 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Intelligence Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;500;600;700;800&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            /* Light Theme (Default) */
+            --bg-primary: #f4f7f9;
+            --bg-secondary: #ffffff;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f8fafc;
+            --bg-glass: rgba(255, 255, 255, 0.85);
+            --accent-gold: #d99a00;
+            --accent-gold-dim: rgba(217, 154, 0, 0.15);
+            --accent-teal: #00997a;
+            --accent-teal-dim: rgba(0, 153, 122, 0.12);
+            --accent-rose: #e63956;
+            --accent-blue: #2c6bb0;
+            --text-primary: #1a202c;
+            --text-secondary: #4a5568;
+            --text-dim: #718096;
+            --border: rgba(0, 0, 0, 0.08);
+            --border-accent: rgba(217, 154, 0, 0.3);
+            --shipped-color: #00997a;
+            --pending-color: #d99a00;
+            --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.04);
+            --shadow-glow: 0 0 40px rgba(217, 154, 0, 0.1);
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #0f1526;
+            --bg-card: #131929;
+            --bg-card-hover: #1a2235;
+            --bg-glass: rgba(19, 25, 41, 0.85);
+            --accent-gold: #f0b429;
+            --accent-gold-dim: rgba(240, 180, 41, 0.15);
+            --accent-teal: #00d4aa;
+            --accent-teal-dim: rgba(0, 212, 170, 0.12);
+            --accent-rose: #ff5f7e;
+            --accent-blue: #4a90d9;
+            --text-primary: #e8eaf0;
+            --text-secondary: #8892a4;
+            --text-dim: #4a5568;
+            --border: rgba(255, 255, 255, 0.08);
+            --border-accent: rgba(240, 180, 41, 0.3);
+            --shipped-color: #00d4aa;
+            --pending-color: #f0b429;
+            --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
+            --shadow-glow: 0 0 40px rgba(240, 180, 41, 0.08);
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Syne', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(ellipse 80% 50% at 20% -10%, var(--accent-gold-dim) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 85% 100%, var(--accent-teal-dim) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── HEADER ── */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 28px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            height: 64px;
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .brand-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--accent-gold);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .brand-name {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            color: var(--text-primary);
+        }
+
+        .brand-name span {
+            color: var(--accent-gold);
+        }
+
+        .header-sep {
+            width: 1px;
+            height: 30px;
+            background: var(--border);
+        }
+
+        .period-tabs {
+            display: flex;
+            gap: 4px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 3px;
+        }
+
+        .period-tab {
+            padding: 5px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            font-family: 'Barlow Condensed', sans-serif;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .period-tab.active {
+            background: var(--accent-gold);
+            color: #0a0e1a;
+        }
+
+        .period-tab:hover:not(.active) {
+            color: var(--text-primary);
+        }
+
+        .header-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-date {
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            border-radius: 7px;
+            font-size: 12px;
+            font-weight: 600;
+            font-family: 'Barlow Condensed', sans-serif;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--accent-gold);
+            color: var(--accent-gold);
+        }
+
+        .btn-gold {
+            background: var(--accent-gold);
+            color: #0a0e1a;
+        }
+
+        .btn-gold:hover {
+            filter: brightness(1.1);
+        }
+
+        .btn-teal {
+            background: var(--accent-teal);
+            color: #ffffff;
+        }
+
+        .btn-teal:hover {
+            filter: brightness(1.1);
+        }
+
+        .btn-danger {
+            background: transparent;
+            border: 1px solid rgba(255, 95, 126, 0.3);
+            color: var(--accent-rose);
+        }
+
+        .btn-danger:hover {
+            background: rgba(255, 95, 126, 0.1);
+        }
+
+        .upload-chip {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px dashed var(--border-accent);
+            background: var(--accent-gold-dim);
+            color: var(--accent-gold);
+            font-size: 11px;
+            font-weight: 600;
+            font-family: 'Barlow Condensed', sans-serif;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .upload-chip:hover {
+            background: rgba(240, 180, 41, 0.22);
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .file-badge {
+            font-size: 10px;
+            font-family: 'DM Mono', monospace;
+            color: var(--text-secondary);
+            background: var(--bg-secondary);
+            padding: 3px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            max-width: 160px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* ── MAIN LAYOUT ── */
+        main {
+            padding: 24px 28px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ── ALERT BANNER ── */
+        .alert-banner {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            border-radius: 8px;
+            background: rgba(240, 180, 41, 0.1);
+            border: 1px solid rgba(240, 180, 41, 0.3);
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: var(--accent-gold);
+        }
+
+        .alert-banner.show {
+            display: flex;
+        }
+
+        /* ── KPI GRID ── */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        @media(max-width:1100px) {
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .kpi-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            transition: all 0.25s;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-card);
+        }
+
+        .kpi-card.interactive {
+            cursor: pointer;
+        }
+
+        .kpi-card.interactive:hover {
+            border-color: var(--kpi-color);
+            transform: translateY(-2px);
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--kpi-color, var(--accent-gold));
+            opacity: 0.9;
+        }
+
+        .kpi-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-family: 'Barlow Condensed', sans-serif;
+        }
+
+        .kpi-value {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1;
+        }
+
+        .kpi-value .currency {
+            font-size: 18px;
+            opacity: 0.6;
+            vertical-align: super;
+        }
+
+        .kpi-sub {
+            margin-top: 6px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-family: 'DM Mono', monospace;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .kpi-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            padding: 2px 7px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 700;
+            font-family: 'Barlow Condensed', sans-serif;
+        }
+
+        .kpi-badge.green {
+            background: rgba(0, 163, 131, 0.15);
+            color: var(--accent-teal);
+        }
+
+        .kpi-badge.amber {
+            background: rgba(217, 154, 0, 0.15);
+            color: var(--accent-gold);
+        }
+
+        .kpi-badge.rose {
+            background: rgba(230, 57, 86, 0.15);
+            color: var(--accent-rose);
+        }
+
+        .kpi-icon {
+            position: absolute;
+            right: 16px;
+            bottom: 14px;
+            font-size: 28px;
+            opacity: 0.07;
+        }
+
+        /* ── CHARTS GRID ── */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .charts-row2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        @media(max-width:900px) {
+
+            .charts-grid,
+            .charts-row2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            position: relative;
+            box-shadow: var(--shadow-card);
+        }
+
+        .chart-title {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .chart-title-pill {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 20px;
+            background: var(--bg-secondary);
+            color: var(--text-dim);
+            font-family: 'DM Mono', monospace;
+            letter-spacing: 0;
+        }
+
+        canvas {
+            max-height: 240px;
+            cursor: pointer;
+        }
+
+        /* Indicates clickable */
+
+        /* ── INSIGHTS BAR ── */
+        .insights-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .insight-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: var(--shadow-card);
+        }
+
+        .insight-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .insight-icon.gold {
+            background: var(--accent-gold-dim);
+        }
+
+        .insight-icon.teal {
+            background: var(--accent-teal-dim);
+        }
+
+        .insight-icon.rose {
+            background: rgba(230, 57, 86, 0.1);
+        }
+
+        .insight-text-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            font-family: 'Barlow Condensed', sans-serif;
+            margin-bottom: 3px;
+        }
+
+        .insight-text-value {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .insight-text-sub {
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-top: 2px;
+        }
+
+        /* ── VENDOR PILLS ── */
+        .vendor-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        @media(max-width:900px) {
+            .vendor-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .vendor-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            box-shadow: var(--shadow-card);
+        }
+
+        .vendor-card:hover {
+            border-color: var(--accent-gold);
+            background: var(--bg-card-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .vendor-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 14px;
+            font-weight: 800;
+            margin: 0 auto 8px;
+        }
+
+        .vendor-name-label {
+            font-size: 11px;
+            font-weight: 700;
+            font-family: 'Barlow Condensed', sans-serif;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .vendor-rev {
+            font-family: 'DM Mono', monospace;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--accent-gold);
+        }
+
+        .vendor-orders {
+            font-size: 10px;
+            color: var(--text-dim);
+            margin-top: 2px;
+        }
+
+        /* ── ACTIVE FILTERS ── */
+        .active-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .filter-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--accent-blue);
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .filter-chip span {
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .filter-chip span:hover {
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        /* ── ORDERS TABLE ── */
+        .table-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-card);
+        }
+
+        .table-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+
+        .table-header-title {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            max-width: 280px;
+            display: flex;
+            align-items: center;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            padding: 6px 12px;
+            gap: 7px;
+        }
+
+        .search-box input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-size: 12px;
+            font-family: 'Syne', sans-serif;
+            width: 100%;
+        }
+
+        .search-box input::placeholder {
+            color: var(--text-dim);
+        }
+
+        .filter-select {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            padding: 6px 10px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-family: 'Syne', sans-serif;
+            outline: none;
+            cursor: pointer;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead tr {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            padding: 10px 14px;
+            text-align: left;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            font-family: 'Barlow Condensed', sans-serif;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 10px 14px;
+            font-size: 12px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        tr:hover td {
+            background: var(--bg-secondary);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .td-order {
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .td-price {
+            font-family: 'DM Mono', monospace;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--accent-gold);
+        }
+
+        .td-link {
+            color: var(--accent-teal);
+            cursor: pointer;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .td-link:hover {
+            filter: brightness(1.2);
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 9px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 700;
+            font-family: 'Barlow Condensed', sans-serif;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .status-pill.shipped {
+            background: var(--accent-teal-dim);
+            color: var(--accent-teal);
+        }
+
+        .status-pill.pending {
+            background: var(--accent-gold-dim);
+            color: var(--accent-gold);
+        }
+
+        .status-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+        }
+
+        .status-pill.shipped .status-dot {
+            background: var(--accent-teal);
+        }
+
+        .status-pill.pending .status-dot {
+            background: var(--accent-gold);
+        }
+
+        .table-footer {
+            padding: 12px 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 11px;
+            color: var(--text-dim);
+            font-family: 'DM Mono', monospace;
+        }
+
+        /* ── CITY TABLE ── */
+        .city-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        /* ── MODAL ── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(6px);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border-accent);
+            border-radius: 14px;
+            width: min(780px, 95vw);
+            max-height: 88vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(217, 154, 0, 0.1);
+            animation: modalIn 0.25s ease;
+        }
+
+        @keyframes modalIn {
+            from {
+                opacity: 0;
+                transform: scale(0.96) translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .modal-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 18px;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+
+        .modal-title {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .modal-subtitle {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .modal-close {
+            margin-left: auto;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 20px;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .modal-close:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .modal-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-stat {
+            text-align: center;
+        }
+
+        .modal-stat-val {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--accent-gold);
+        }
+
+        .modal-stat-lbl {
+            font-size: 10px;
+            color: var(--text-dim);
+            font-family: 'Barlow Condensed', sans-serif;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-top: 3px;
+        }
+
+        .modal-body {
+            overflow-y: auto;
+            padding: 16px 24px;
+            flex: 1;
+        }
+
+        .modal-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .modal-table th {
+            padding: 8px 10px;
+            text-align: left;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-table td {
+            padding: 9px 10px;
+            font-size: 11px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        .modal-footer {
+            padding: 14px 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        /* ── SCROLLBAR ── */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-dim);
+        }
+
+        /* ── TOASTS ── */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .toast {
+            padding: 10px 16px;
+            border-radius: 8px;
+            background: var(--text-primary);
+            border: 1px solid var(--border);
+            font-size: 12px;
+            color: var(--bg-primary);
+            font-weight: 500;
+            box-shadow: var(--shadow-card);
+            animation: toastIn 0.3s ease;
+        }
+
+        @keyframes toastIn {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .section-label {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            margin-bottom: 10px;
+            padding-left: 4px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- HEADER -->
+    <header>
+        <div class="header-brand">
+            <div class="brand-icon">📦</div>
+            <div class="brand-name">Order<span>IQ</span></div>
+        </div>
+        <div class="header-sep"></div>
+        <div class="period-tabs">
+            <button class="period-tab active" onclick="setPeriod('daily')">Daily</button>
+            <button class="period-tab" onclick="setPeriod('weekly')">Weekly</button>
+            <button class="period-tab" onclick="setPeriod('monthly')">Monthly</button>
+            <button class="period-tab" onclick="setPeriod('quarterly')">Quarterly</button>
+        </div>
+        <div class="header-right">
+            <div class="header-date" id="headerDate">—</div>
+            <div class="header-sep"></div>
+            <button class="btn btn-outline" id="themeToggleBtn" onclick="toggleTheme()">🌙 Dark Mode</button>
+            <label class="upload-chip">
+                <span>📂</span> Upload File
+                <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" onchange="handleFileUpload(event)">
+            </label>
+            <span class="file-badge" id="fileBadge">Dummy.xlsx (cached)</span>
+            <button class="btn btn-danger" onclick="clearData()">🗑 Clear</button>
+            <button class="btn btn-teal" onclick="downloadCSV()">⬇ CSV</button>
+            <button class="btn btn-gold" onclick="printReport()">🖨 Report</button>
+        </div>
+    </header>
+
+    <main>
+        <!-- ALERT -->
+        <div class="alert-banner" id="alertBanner">
+            ⚠️ <span id="alertText"></span>
+        </div>
+
+        <!-- KPI SECTION -->
+        <div class="section-label">Key Performance Indicators (Click to Filter)</div>
+        <div class="kpi-grid" id="kpiGrid">
+            <div class="kpi-card" style="--kpi-color:#d99a00">
+                <div class="kpi-label">Total Revenue</div>
+                <div class="kpi-value"><span class="currency">₹</span><span id="kpi-rev">—</span></div>
+                <div class="kpi-sub"><span class="kpi-badge amber" id="kpi-rev-badge">—</span> <span>incl. tax</span></div>
+                <div class="kpi-icon">₹</div>
+            </div>
+            <div class="kpi-card" style="--kpi-color:#2c6bb0">
+                <div class="kpi-label">Total Orders</div>
+                <div class="kpi-value" id="kpi-orders">—</div>
+                <div class="kpi-sub"><span id="kpi-qty">—</span> units sold</div>
+                <div class="kpi-icon">#</div>
+            </div>
+            <div class="kpi-card interactive" style="--kpi-color:#00997a" onclick="addFilter('status', 'Shipped')" title="Click to filter Shipped orders">
+                <div class="kpi-label">Shipped</div>
+                <div class="kpi-value"><span id="kpi-shipped">—</span><span style="font-size:18px;color:var(--text-secondary)">%</span></div>
+                <div class="kpi-sub"><span class="kpi-badge green" id="kpi-shipped-n">—</span> <span>orders fulfilled</span></div>
+                <div class="kpi-icon">✓</div>
+            </div>
+            <div class="kpi-card interactive" style="--kpi-color:#e63956" onclick="addFilter('status', 'Pending')" title="Click to filter Pending orders">
+                <div class="kpi-label">Pending Orders</div>
+                <div class="kpi-value" id="kpi-pending">—</div>
+                <div class="kpi-sub"><span class="kpi-badge amber" id="kpi-pending-rev">—</span> <span>revenue at risk</span></div>
+                <div class="kpi-icon">⏳</div>
+            </div>
+            <div class="kpi-card" style="--kpi-color:#805ad5">
+                <div class="kpi-label">Avg Order Value</div>
+                <div class="kpi-value"><span class="currency">₹</span><span id="kpi-aov">—</span></div>
+                <div class="kpi-sub"><span id="kpi-aov-sub">—</span></div>
+                <div class="kpi-icon">⌀</div>
+            </div>
+            <div class="kpi-card" style="--kpi-color:#00997a">
+                <div class="kpi-label">Tax Collected</div>
+                <div class="kpi-value"><span class="currency">₹</span><span id="kpi-tax">—</span></div>
+                <div class="kpi-sub"><span id="kpi-tax-pct">—</span>% effective rate</div>
+                <div class="kpi-icon">%</div>
+            </div>
+            <div class="kpi-card" style="--kpi-color:#d99a00">
+                <div class="kpi-label">Active Vendors</div>
+                <div class="kpi-value" id="kpi-vendors">—</div>
+                <div class="kpi-sub"><span id="kpi-products">—</span> unique products</div>
+                <div class="kpi-icon">🏢</div>
+            </div>
+            <div class="kpi-card interactive" style="--kpi-color:#2c6bb0" onclick="addFilter('shipLevel', 'Expedited')" title="Click to filter Expedited orders">
+                <div class="kpi-label">Expedited Rate</div>
+                <div class="kpi-value"><span id="kpi-expedited">—</span><span style="font-size:18px;color:var(--text-secondary)">%</span></div>
+                <div class="kpi-sub"><span id="kpi-expedited-n">—</span> expedited orders</div>
+                <div class="kpi-icon">🚀</div>
+            </div>
+        </div>
+
+        <!-- CHARTS ROW 1 -->
+        <div class="section-label">Revenue Analytics (Click Charts to Filter)</div>
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-title">Revenue by Vendor <span class="chart-title-pill" id="vendorChartLabel">—</span></div>
+                <canvas id="vendorChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">Order Status Distribution</div>
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+
+        <!-- CHARTS ROW 2 -->
+        <div class="charts-row2">
+            <div class="chart-card">
+                <div class="chart-title">Top 8 Products by Revenue</div>
+                <canvas id="productChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">Shipping Level Mix <span class="chart-title-pill" id="shipChartLabel">—</span></div>
+                <canvas id="shipChart"></canvas>
+            </div>
+        </div>
+
+        <!-- INSIGHTS ROW -->
+        <div class="section-label">Management Insights</div>
+        <div class="insights-row">
+            <div class="insight-card">
+                <div class="insight-icon gold">🏆</div>
+                <div>
+                    <div class="insight-text-label">Top Vendor</div>
+                    <div class="insight-text-value" id="insight-top-vendor">—</div>
+                    <div class="insight-text-sub" id="insight-top-vendor-sub">—</div>
+                </div>
+            </div>
+            <div class="insight-card">
+                <div class="insight-icon teal">📦</div>
+                <div>
+                    <div class="insight-text-label">Best Selling Product</div>
+                    <div class="insight-text-value" id="insight-top-product">—</div>
+                    <div class="insight-text-sub" id="insight-top-product-sub">—</div>
+                </div>
+            </div>
+            <div class="insight-card">
+                <div class="insight-icon rose">📍</div>
+                <div>
+                    <div class="insight-text-label">Top Destination City</div>
+                    <div class="insight-text-value" id="insight-top-city">—</div>
+                    <div class="insight-text-sub" id="insight-top-city-sub">—</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VENDORS SECTION -->
+        <div class="section-label" style="margin-bottom:10px;">Vendor Overview — Click to Drill Down</div>
+        <div class="vendor-grid" id="vendorGrid"></div>
+
+        <!-- ORDERS TABLE -->
+        <div class="section-label">Order Records</div>
+        <div class="active-filters" id="activeFiltersContainer"></div>
+        <div class="table-section" id="ordersTableSection">
+            <div class="table-header">
+                <div class="table-header-title">Orders</div>
+                <div class="search-box">
+                    <span style="color:var(--text-dim);font-size:13px;">🔍</span>
+                    <input type="text" id="searchInput" placeholder="Search orders, products, cities…" oninput="filterTable()">
+                </div>
+                <select class="filter-select" id="statusFilter" onchange="syncSelectsAndFilter()">
+                    <option value="">All Status</option>
+                    <option value="Shipped">Shipped</option>
+                    <option value="Pending">Pending</option>
+                </select>
+                <select class="filter-select" id="vendorFilter" onchange="syncSelectsAndFilter()">
+                    <option value="">All Vendors</option>
+                </select>
+                <button class="btn btn-outline" onclick="clearFilters()">✕ Clear Filters</button>
+            </div>
+            <div style="overflow-x:auto">
+                <table id="ordersTable">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Date</th>
+                            <th>Vendor</th>
+                            <th>Product</th>
+                            <th>Qty</th>
+                            <th>Price</th>
+                            <th>Tax</th>
+                            <th>City</th>
+                            <th>Ship Level</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+            <div class="table-footer">
+                <span id="tableCount">—</span> orders shown
+                <span style="margin-left:auto">Total: ₹<span id="tableTotal">—</span></span>
+            </div>
+        </div>
+
+        <!-- CITY / PRODUCT BREAKDOWN -->
+        <div class="city-grid">
+            <div class="chart-card">
+                <div class="chart-title">Orders by City (Top 10)</div>
+                <canvas id="cityChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">Vendor Market Share</div>
+                <canvas id="vendorPieChart"></canvas>
+            </div>
+        </div>
+    </main>
+
+    <!-- MODAL -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-avatar" id="modalAvatar"></div>
+                <div>
+                    <div class="modal-title" id="modalTitle">—</div>
+                    <div class="modal-subtitle" id="modalSubtitle">—</div>
+                </div>
+                <button class="modal-close" onclick="closeModalDirect()">✕</button>
+            </div>
+            <div class="modal-stats" id="modalStats"></div>
+            <div class="modal-body">
+                <div style="overflow-x:auto">
+                    <table class="modal-table" id="modalTable">
+                        <thead id="modalThead"></thead>
+                        <tbody id="modalTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="downloadModalCSV()">⬇ Download CSV</button>
+                <button class="btn btn-gold" onclick="closeModalDirect()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOASTS -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // ─── SEED DATA ────────────────────────────────────────────────────────────────
+        const SEED_DATA = [{
+            "amazon-order-id": "202-0948942-6956360",
+            "purchase-d": "2026-04-15",
+            "order-status": "Pending",
+            "fulfillment-channel": "Amazon",
+            "sales-channel": "Amazon.in",
+            "ship-service-level": "Standard",
+            "product-name": "H&C Brahmi Powder (Bacopa Monnieri) - 227g",
+            "sku": "HC_BI_029_01",
+            "asin": "B01HQH4TVK",
+            "item-status": "Unshipped",
+            "quantity": 1,
+            "currency": "INR",
+            "item-price": 989,
+            "item-tax": "",
+            "ship-city": "MUMBAI",
+            "ship-postal-code": "400001",
+            "Company": "H&C"
+        }, {
+            "amazon-order-id": "203-9725463-4889938",
+            "purchase-d": "2026-04-15",
+            "order-status": "Shipped",
+            "fulfillment-channel": "Amazon",
+            "sales-channel": "Amazon.in",
+            "ship-service-level": "Expedited",
+            "product-name": "2 X Lakme Eyeconic Kajal Twin Pack, Black, 0.35g",
+            "sku": "LK_BI_037",
+            "asin": "B07GFJP3N2",
+            "item-status": "Shipped",
+            "quantity": 1,
+            "currency": "INR",
+            "item-price": 533,
+            "item-tax": 89,
+            "ship-city": "DELHI",
+            "ship-postal-code": "110001",
+            "Company": "Lakme"
+        }, {
+            "amazon-order-id": "026-1950246-8662723",
+            "purchase-d": "2026-04-15",
+            "order-status": "Shipped",
+            "fulfillment-channel": "Amazon",
+            "sales-channel": "Amazon.in",
+            "ship-service-level": "Expedited",
+            "product-name": "H&C Fuller's Earth Clay/Multani Mitti - 100Gms",
+            "sku": "HC_BI_015",
+            "asin": "B0BPMBLWPH",
+            "item-status": "Shipped",
+            "quantity": 1,
+            "currency": "INR",
+            "item-price": 599,
+            "item-tax": 100,
+            "ship-city": "BENGALURU",
+            "ship-postal-code": "560001",
+            "Company": "H&C"
+        }, {
+            "amazon-order-id": "203-2391450-6751529",
+            "purchase-d": "2026-04-15",
+            "order-status": "Shipped",
+            "fulfillment-channel": "Amazon",
+            "sales-channel": "Amazon.in",
+            "ship-service-level": "Expedited",
+            "product-name": "Vaseline Gluta-Hya Overnight Radiance Lotion, 200ml",
+            "sku": "VS_BI_009",
+            "asin": "B0CXDGSKPG",
+            "item-status": "Shipped",
+            "quantity": 1,
+            "currency": "INR",
+            "item-price": 999,
+            "item-tax": 167,
+            "ship-city": "PUNE",
+            "ship-postal-code": "411001",
+            "Company": "Vaseline"
+        }, {
+            "amazon-order-id": "204-4323442-6493160",
+            "purchase-d": "2026-04-15",
+            "order-status": "Pending",
+            "fulfillment-channel": "Amazon",
+            "sales-channel": "Amazon.in",
+            "ship-service-level": "Expedited",
+            "product-name": "H&C Activated Charcoal Powder - 227 Grams Pack",
+            "sku": "HC_BI_003",
+            "asin": "B09CQ7FJ4J",
+            "item-status": "Unshipped",
+            "quantity": 1,
+            "currency": "INR",
+            "item-price": 840,
+            "item-tax": "",
+            "ship-city": "HYDERABAD",
+            "ship-postal-code": "500001",
+            "Company": "H&C"
+        }, {
+            "amazon-order-id": "206-6901024-4833919",
+            "purchase-d": "2026-04-15",
+            "order-status": "Shipped",
+            "fulfillment-channel": "Amazon",
+            "sales-channel": "Amazon.in",
+            "ship-service-level": "Expedited",
+            "product-name": "H&C Indigo Powder 1Kg Pack | For Hair Coloring",
+            "sku": "HC_BI_022",
+            "asin": "B0965C9K81",
+            "item-status": "Shipped",
+            "quantity": 1,
+            "currency": "INR",
+            "item-price": 2299,
+            "item-tax": 383,
+            "ship-city": "CHENNAI",
+            "ship-postal-code": "600001",
+            "Company": "H&C"
+        }, {
+            "amazon-order-id": "204-4236018-0516321",
+            "purchase-d": "2026-04-15",
+            "order-status": "Shipped",
+            "fulfillment-channel": "Amazon",
+            "sales-channel": "Amazon.in",
+            "ship-service-level": "Expedited",
+            "product-name": "Mamaearth Onion Hair Fall Control Shampoo 228ml",
+            "sku": "ME_BI_8906087772187_228",
+            "asin": "B0828PRFKP",
+            "item-status": "Shipped",
+            "quantity": 1,
+            "currency": "INR",
+            "item-price": 1489,
+            "item-tax": 248,
+            "ship-city": "MUMBAI",
+            "ship-postal-code": "400002",
+            "Company": "Mamaearth"
+        }, {
+            "amazon-order-id": "026-2550803-4752307",
+            "purchase-d": "2026-04-15",
+            "order-status": "Pending",
+            "fulfillment-channel": "Amazon",
+            "sales-channel": "Amazon.in",
+            "ship-service-level": "Expedited",
+            "product-name": "Yardley English Lavender Luxury Soap, 3x100gm",
+            "sku": "Y_BI_066",
+            "asin": "B00S857CUU",
+            "item-status": "Unshipped",
+            "quantity": 1,
+            "currency": "INR",
+            "item-price": 684,
+            "item-tax": "",
+            "ship-city": "DELHI",
+            "ship-postal-code": "110002",
+            "Company": "Yardley"
+        }, {
+            "amazon-order-id": "026-7144844-0166734",
+            "purchase-d": "2026-04-15",
+            "order-status": "Pending",
+            "fulfillment-channel": "Amazon",
+            "sales-channel": "Amazon.in",
+            "ship-service-level": "Standard",
+            "product-name": "Mamaearth Bye Bye Dark Circles, Under Eye Cream 20ml",
+            "sku": "ME_BI_8906087771982_044",
+            "asin": "B082FL9GB6",
+            "item-status": "Unshipped",
+            "quantity": 1,
+            "currency": "INR",
+            "item-price": 999,
+            "item-tax": "",
+            "ship-city": "BENGALURU",
+            "ship-postal-code": "560002",
+            "Company": "Mamaearth"
+        }, {
+            "amazon-order-id": "026-1309725-5557900",
+            "purchase-d": "2026-04-15",
+            "order-status": "Shipped",
+            "fulfillment-channel": "Amazon",
+            "sales-channel": "Amazon.in",
+            "ship-service-level": "Expedited",
+            "product-name": "Pitambari Shining Powder - 200g (Pack of 3)",
+            "sku": "PB_BI_003",
+            "asin": "B07B641FNC",
+            "item-status": "Shipped",
+            "quantity": 1,
+            "currency": "INR",
+            "item-price": 1224,
+            "item-tax": 204,
+            "ship-city": "PUNE",
+            "ship-postal-code": "411002",
+            "Company": "PITAMBARI"
+        }, {
+            "amazon-order-id": "203-1439451-1734740",
+            "purchase-d": "2026-04-15",
+            "order-status": "Shipped",
+            "fulfillment-channel": "Amazon",
+            "sales-channel": "Amazon.in",
+            "ship-service-level": "Expedited",
+            "product-name": "Vaseline Gluta-Hya Overnight Radiance Lotion, 200ml",
+            "sku": "VS_BI_009",
+            "asin": "B0CXDGSKPG",
+            "item-status": "Shipped",
+            "quantity": 1,
+            "currency": "INR",
+            "item-price": 999,
+            "item-tax": 167,
+            "ship-city": "DELHI",
+            "ship-postal-code": "110003",
+            "Company": "Vaseline"
+        }, {
+            "amazon-order-id": "206-4764133-9781921",
+            "purchase-d": "2026-04-15",
+            "order-status": "Shipped",
+            "fulfillment-channel": "Amazon",
+            "sales-channel": "Amazon.in",
+            "ship-service-level": "Expedited",
+            "product-name": "2 X Lakme Eyeconic Kajal Twin Pack, Black, 0.35g",
+            "sku": "LK_BI_037",
+            "asin": "B07GFJP3N2",
+            "item-status": "Shipped",
+            "quantity": 1,
+            "currency": "INR",
+            "item-price": 533,
+            "item-tax": 89,
+            "ship-city": "MUMBAI",
+            "ship-postal-code": "400003",
+            "Company": "Lakme"
+        }];
+
+        const VENDOR_COLORS = {
+            'H&C': {
+                bg: '#dcfce7',
+                text: '#15803d',
+                hex: '#15803d'
+            },
+            'Mamaearth': {
+                bg: '#fef9c3',
+                text: '#854d0e',
+                hex: '#854d0e'
+            },
+            'Vaseline': {
+                bg: '#e0f2fe',
+                text: '#0369a1',
+                hex: '#0369a1'
+            },
+            'Lakme': {
+                bg: '#fce7f3',
+                text: '#be185d',
+                hex: '#be185d'
+            },
+            'Yardley': {
+                bg: '#f3e8ff',
+                text: '#6b21a8',
+                hex: '#6b21a8'
+            },
+            'Indulekha': {
+                bg: '#ffedd5',
+                text: '#c2410c',
+                hex: '#c2410c'
+            },
+            'ponds': {
+                bg: '#cffafe',
+                text: '#0f766e',
+                hex: '#0f766e'
+            },
+            'PITAMBARI': {
+                bg: '#fdf2f8',
+                text: '#9d174d',
+                hex: '#9d174d'
+            },
+            'PATANJALI': {
+                bg: '#fef3c7',
+                text: '#b45309',
+                hex: '#b45309'
+            },
+            'Sunsilk': {
+                bg: '#f1f5f9',
+                text: '#334155',
+                hex: '#334155'
+            },
+        };
+
+        // ─── STATE ────────────────────────────────────────────────────────────────────
+        let rawData = [];
+        let filteredData = [];
+        let currentPeriod = 'daily';
+        let charts = {};
+        let currentModalData = [];
+        let currentModalTitle = '';
+
+        // Active Filters for interactive clicks
+        let activeFilters = {
+            vendor: null,
+            status: null,
+            city: null,
+            product: null,
+            shipLevel: null
+        };
+
+        // ─── THEME INIT ───────────────────────────────────────────────────────────────
+        function initTheme() {
+            const savedTheme = localStorage.getItem('orderiq_theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeButton(savedTheme);
+        }
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const newTheme = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('orderiq_theme', newTheme);
+            updateThemeButton(newTheme);
+            renderCharts(filteredData); // Re-render to update axes/text colors
+        }
+
+        function updateThemeButton(theme) {
+            const btn = document.getElementById('themeToggleBtn');
+            if (theme === 'dark') {
+                btn.innerHTML = '☀️ Light Mode';
+            } else {
+                btn.innerHTML = '🌙 Dark Mode';
+            }
+        }
+
+        function getCssVar(name) {
+            return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        }
+
+        // ─── INIT ─────────────────────────────────────────────────────────────────────
+        window.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            const cached = localStorage.getItem('orderiq_data');
+            const cachedName = localStorage.getItem('orderiq_filename');
+            if (cached) {
+                try {
+                    rawData = JSON.parse(cached);
+                    document.getElementById('fileBadge').textContent = (cachedName || 'cached') + ' (cached)';
+                    toast('📦 Loaded from cache: ' + (cachedName || 'data'));
+                } catch {
+                    rawData = SEED_DATA;
+                }
+            } else {
+                rawData = SEED_DATA;
+                localStorage.setItem('orderiq_data', JSON.stringify(rawData));
+                localStorage.setItem('orderiq_filename', 'Dummy.xlsx');
+            }
+            updateHeaderDate();
+            renderAll();
+        });
+
+        function updateHeaderDate() {
+            const d = new Date();
+            document.getElementById('headerDate').textContent =
+                d.toLocaleDateString('en-GB', {
+                    weekday: 'short',
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric'
+                });
+        }
+
+        // ─── PERIOD FILTER ────────────────────────────────────────────────────────────
+        function setPeriod(p) {
+            currentPeriod = p;
+            document.querySelectorAll('.period-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.period-tab').forEach(t => {
+                if (t.textContent.toLowerCase() === p) t.classList.add('active');
+            });
+            renderAll();
+        }
+
+        function getFilteredByPeriod(data) {
+            const now = new Date('2026-04-16'); // latest date in dataset
+            return data.filter(r => {
+                const d = new Date(r['purchase-d']);
+                if (currentPeriod === 'daily') {
+                    const diff = (now - d) / 86400000;
+                    return diff < 2;
+                } else if (currentPeriod === 'weekly') {
+                    return (now - d) / 86400000 < 7;
+                } else if (currentPeriod === 'monthly') {
+                    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                } else { // quarterly
+                    const q = Math.floor(d.getMonth() / 3);
+                    const nq = Math.floor(now.getMonth() / 3);
+                    return q === nq && d.getFullYear() === now.getFullYear();
+                }
+            });
+        }
+
+        // ─── RENDER ALL ──────────────────────────────────────────────────────────────
+        function renderAll() {
+            filteredData = getFilteredByPeriod(rawData);
+            if (filteredData.length === 0) {
+                showAlert('No data for selected period. Showing all available data.');
+                filteredData = rawData;
+            } else {
+                hideAlert();
+            }
+            renderKPIs(filteredData);
+            renderCharts(filteredData);
+            renderInsights(filteredData);
+            renderVendorGrid(filteredData);
+            populateFilters(filteredData);
+            filterTable(); // Renders the table applying current filters
+        }
+
+        // ─── KPIs ─────────────────────────────────────────────────────────────────────
+        function renderKPIs(data) {
+            const totalRev = data.reduce((s, r) => s + (parseFloat(r['item-price']) || 0), 0);
+            const totalTax = data.reduce((s, r) => s + (parseFloat(r['item-tax']) || 0), 0);
+            const totalOrders = data.length;
+            const totalQty = data.reduce((s, r) => s + (parseInt(r.quantity) || 0), 0);
+            const shipped = data.filter(r => r['order-status'] === 'Shipped').length;
+            const pending = data.filter(r => r['order-status'] === 'Pending').length;
+            const pendingRev = data.filter(r => r['order-status'] === 'Pending')
+                .reduce((s, r) => s + (parseFloat(r['item-price']) || 0), 0);
+            const aov = totalOrders ? totalRev / totalOrders : 0;
+            const vendors = new Set(data.map(r => r.Company)).size;
+            const products = new Set(data.map(r => r['product-name'])).size;
+            const expedited = data.filter(r => r['ship-service-level'] === 'Expedited').length;
+
+            setText('kpi-rev', fmt(totalRev));
+            setText('kpi-rev-badge', '₹' + fmt(totalTax) + ' tax');
+            setText('kpi-orders', totalOrders);
+            setText('kpi-qty', totalQty);
+            setText('kpi-shipped', Math.round(shipped / totalOrders * 100) || 0);
+            setText('kpi-shipped-n', shipped);
+            setText('kpi-pending', pending);
+            setText('kpi-pending-rev', '₹' + fmt(pendingRev));
+            setText('kpi-aov', fmt(aov));
+            setText('kpi-aov-sub', totalOrders + ' orders avg');
+            setText('kpi-tax', fmt(totalTax));
+            setText('kpi-tax-pct', totalRev ? (totalTax / totalRev * 100).toFixed(1) : '—');
+            setText('kpi-vendors', vendors);
+            setText('kpi-products', products);
+            setText('kpi-expedited', Math.round(expedited / totalOrders * 100) || 0);
+            setText('kpi-expedited-n', expedited);
+        }
+
+        // ─── CHARTS ──────────────────────────────────────────────────────────────────
+        function renderCharts(data) {
+            const textColor = getCssVar('--text-secondary') || '#8892a4';
+            const gridColor = getCssVar('--border') || 'rgba(0,0,0,0.05)';
+            const fontFamBarlow = 'Barlow Condensed';
+            const fontFamDM = 'DM Mono';
+
+            // Vendor revenue
+            const vendorMap = {};
+            data.forEach(r => {
+                const v = r.Company;
+                vendorMap[v] = (vendorMap[v] || 0) + (parseFloat(r['item-price']) || 0);
+            });
+            const vendorSorted = Object.entries(vendorMap).sort((a, b) => b[1] - a[1]);
+            const labels = vendorSorted.map(([k]) => k);
+            const vals = vendorSorted.map(([, v]) => +v.toFixed(2));
+            const colors = labels.map(l => (VENDOR_COLORS[l] || {
+                hex: '#666'
+            }).hex);
+
+            const label = currentPeriod.charAt(0).toUpperCase() + currentPeriod.slice(1);
+            setText('vendorChartLabel', label);
+            setText('shipChartLabel', label);
+
+            destroyChart('vendorChart');
+            charts.vendor = new Chart(document.getElementById('vendorChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{
+                        data: vals,
+                        backgroundColor: colors,
+                        borderRadius: 6,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    onClick: (e, elements, chart) => {
+                        if (elements.length) {
+                            const l = chart.data.labels[elements[0].index];
+                            addFilter('vendor', l);
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => ' ₹' + ctx.raw.toFixed(2)
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: textColor,
+                                font: {
+                                    family: fontFamBarlow,
+                                    size: 11
+                                }
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: gridColor
+                            },
+                            ticks: {
+                                color: textColor,
+                                font: {
+                                    family: fontFamDM,
+                                    size: 10
+                                },
+                                callback: v => '₹' + v
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Status doughnut
+            const shipped = data.filter(r => r['order-status'] === 'Shipped').length;
+            const pending = data.length - shipped;
+            destroyChart('statusChart');
+            charts.status = new Chart(document.getElementById('statusChart').getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Shipped', 'Pending'],
+                    datasets: [{
+                        data: [shipped, pending],
+                        backgroundColor: [getCssVar('--shipped-color') || '#00997a', getCssVar('--pending-color') || '#d99a00'],
+                        borderWidth: 1.5,
+                        borderColor: getCssVar('--bg-card'),
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    cutout: '65%',
+                    onClick: (e, elements, chart) => {
+                        if (elements.length) addFilter('status', chart.data.labels[elements[0].index]);
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: textColor,
+                                font: {
+                                    family: fontFamBarlow,
+                                    size: 12
+                                },
+                                padding: 16,
+                                boxWidth: 12
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => ` ${ctx.label}: ${ctx.raw} orders`
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Top products
+            const prodMap = {};
+            data.forEach(r => {
+                prodMap[r['product-name']] = (prodMap[r['product-name']] || 0) + (parseFloat(r['item-price']) || 0);
+            });
+            const prodSorted = Object.entries(prodMap).sort((a, b) => b[1] - a[1]).slice(0, 8);
+            const pLabels = prodSorted.map(([k]) => k.length > 32 ? k.slice(0, 32) + '…' : k);
+            const pKeys = prodSorted.map(([k]) => k); // full names for filtering
+            const pVals = prodSorted.map(([, v]) => +v.toFixed(2));
+            destroyChart('productChart');
+            charts.product = new Chart(document.getElementById('productChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: pLabels,
+                    datasets: [{
+                        data: pVals,
+                        backgroundColor: getCssVar('--accent-gold') || '#d99a00',
+                        borderWidth: 0,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    onClick: (e, elements, chart) => {
+                        if (elements.length) addFilter('product', pKeys[elements[0].index]);
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => ' ₹' + ctx.raw.toFixed(2)
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: gridColor
+                            },
+                            ticks: {
+                                color: textColor,
+                                font: {
+                                    family: fontFamDM,
+                                    size: 10
+                                },
+                                callback: v => '₹' + v
+                            }
+                        },
+                        y: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: textColor,
+                                font: {
+                                    family: 'Syne',
+                                    size: 10
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Shipping level
+            const sMap = {};
+            data.forEach(r => {
+                sMap[r['ship-service-level']] = (sMap[r['ship-service-level']] || 0) + 1;
+            });
+            destroyChart('shipChart');
+            charts.ship = new Chart(document.getElementById('shipChart').getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(sMap),
+                    datasets: [{
+                        data: Object.values(sMap),
+                        backgroundColor: [getCssVar('--accent-blue') || '#2c6bb0', getCssVar('--shipped-color') || '#00997a', '#805ad5'],
+                        borderWidth: 1.5,
+                        borderColor: getCssVar('--bg-card'),
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    cutout: '60%',
+                    onClick: (e, elements, chart) => {
+                        if (elements.length) addFilter('shipLevel', chart.data.labels[elements[0].index]);
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: textColor,
+                                font: {
+                                    family: fontFamBarlow,
+                                    size: 12
+                                },
+                                padding: 16,
+                                boxWidth: 12
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => ` ${ctx.label}: ${ctx.raw}`
+                            }
+                        }
+                    }
+                }
+            });
+
+            // City chart
+            const cityMap = {};
+            data.forEach(r => {
+                const c = (r['ship-city'] || '').trim();
+                if (!c) return;
+                const key = c.toUpperCase();
+                cityMap[key] = (cityMap[key] || 0) + 1;
+            });
+            const citySorted = Object.entries(cityMap).sort((a, b) => b[1] - a[1]).slice(0, 10);
+            destroyChart('cityChart');
+            charts.city = new Chart(document.getElementById('cityChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: citySorted.map(([k]) => k),
+                    datasets: [{
+                        data: citySorted.map(([, v]) => v),
+                        backgroundColor: getCssVar('--shipped-color') || '#00997a',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    onClick: (e, elements, chart) => {
+                        if (elements.length) addFilter('city', chart.data.labels[elements[0].index]);
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: textColor,
+                                font: {
+                                    family: fontFamBarlow,
+                                    size: 10
+                                },
+                                maxRotation: 40
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: gridColor
+                            },
+                            ticks: {
+                                color: textColor,
+                                font: {
+                                    family: fontFamDM,
+                                    size: 10
+                                },
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Vendor pie
+            destroyChart('vendorPieChart');
+            charts.vendorPie = new Chart(document.getElementById('vendorPieChart').getContext('2d'), {
+                type: 'pie',
+                data: {
+                    labels,
+                    datasets: [{
+                        data: vals,
+                        backgroundColor: colors,
+                        borderColor: getCssVar('--bg-card'),
+                        borderWidth: 2,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    onClick: (e, elements, chart) => {
+                        if (elements.length) addFilter('vendor', chart.data.labels[elements[0].index]);
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: textColor,
+                                font: {
+                                    family: fontFamBarlow,
+                                    size: 11
+                                },
+                                padding: 10,
+                                boxWidth: 12
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => ` ${ctx.label}: ₹${ctx.raw.toFixed(2)}`
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function destroyChart(id) {
+            if (charts[id.replace('Chart', '')]) {
+                try {
+                    charts[id.replace('Chart', '')].destroy();
+                } catch {}
+            }
+            const chartInst = Chart.getChart(id);
+            if (chartInst) chartInst.destroy();
+        }
+
+        // ─── INSIGHTS ─────────────────────────────────────────────────────────────────
+        function renderInsights(data) {
+            // Top vendor
+            const vm = {};
+            data.forEach(r => {
+                vm[r.Company] = (vm[r.Company] || 0) + (parseFloat(r['item-price']) || 0);
+            });
+            const topV = Object.entries(vm).sort((a, b) => b[1] - a[1])[0];
+            setText('insight-top-vendor', topV ? topV[0] : '—');
+            setText('insight-top-vendor-sub', topV ? '₹' + fmt(topV[1]) + ' revenue · ' + data.filter(r => r.Company === topV[0]).length + ' orders' : '');
+
+            // Top product
+            const pm = {};
+            data.forEach(r => {
+                pm[r['product-name']] = (pm[r['product-name']] || 0) + (parseFloat(r['item-price']) || 0);
+            });
+            const topP = Object.entries(pm).sort((a, b) => b[1] - a[1])[0];
+            const pName = topP ? (topP[0].length > 28 ? topP[0].slice(0, 28) + '…' : topP[0]) : '—';
+            setText('insight-top-product', pName);
+            setText('insight-top-product-sub', topP ? '₹' + fmt(topP[1]) + ' · ' + data.filter(r => r['product-name'] === topP[0]).length + ' sold' : '');
+
+            // Top city
+            const cm = {};
+            data.forEach(r => {
+                const c = (r['ship-city'] || '').trim().toUpperCase();
+                if (c) cm[c] = (cm[c] || 0) + 1;
+            });
+            const topC = Object.entries(cm).sort((a, b) => b[1] - a[1])[0];
+            setText('insight-top-city', topC ? topC[0] : '—');
+            setText('insight-top-city-sub', topC ? topC[1] + ' orders shipped' : '');
+        }
+
+        // ─── VENDOR GRID ──────────────────────────────────────────────────────────────
+        function renderVendorGrid(data) {
+            const vm = {};
+            data.forEach(r => {
+                if (!vm[r.Company]) vm[r.Company] = {
+                    rev: 0,
+                    orders: 0
+                };
+                vm[r.Company].rev += (parseFloat(r['item-price']) || 0);
+                vm[r.Company].orders++;
+            });
+            const sorted = Object.entries(vm).sort((a, b) => b[1].rev - a[1].rev);
+            const grid = document.getElementById('vendorGrid');
+            grid.innerHTML = '';
+            sorted.forEach(([name, stats]) => {
+                const col = VENDOR_COLORS[name] || {
+                    bg: '#f1f5f9',
+                    text: '#334155',
+                    hex: '#334155'
+                };
+                const div = document.createElement('div');
+                div.className = 'vendor-card';
+                div.onclick = () => openVendorModal(name);
+                div.innerHTML = `
+      <div class="vendor-avatar" style="background:${col.bg};color:${col.text}">${name.slice(0,2).toUpperCase()}</div>
+      <div class="vendor-name-label">${name}</div>
+      <div class="vendor-rev">₹${fmt(stats.rev)}</div>
+      <div class="vendor-orders">${stats.orders} orders</div>`;
+                grid.appendChild(div);
+            });
+        }
+
+        // ─── INTERACTIVE FILTERING ────────────────────────────────────────────────────
+        function addFilter(type, value) {
+            activeFilters[type] = value;
+
+            // Sync the dropdowns if applicable
+            if (type === 'status') document.getElementById('statusFilter').value = value;
+            if (type === 'vendor') document.getElementById('vendorFilter').value = value;
+
+            filterTable();
+            document.getElementById('ordersTableSection').scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+            toast(`🔍 Filter applied: ${type.toUpperCase()} = ${value}`);
+        }
+
+        function removeFilter(type) {
+            activeFilters[type] = null;
+            if (type === 'status') document.getElementById('statusFilter').value = '';
+            if (type === 'vendor') document.getElementById('vendorFilter').value = '';
+            filterTable();
+        }
+
+        function syncSelectsAndFilter() {
+            activeFilters.status = document.getElementById('statusFilter').value || null;
+            activeFilters.vendor = document.getElementById('vendorFilter').value || null;
+            filterTable();
+        }
+
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('vendorFilter').value = '';
+            activeFilters = {
+                vendor: null,
+                status: null,
+                city: null,
+                product: null,
+                shipLevel: null
+            };
+            filterTable();
+        }
+
+        function renderActiveFiltersUI() {
+            const container = document.getElementById('activeFiltersContainer');
+            container.innerHTML = '';
+
+            const mapping = {
+                vendor: 'Vendor',
+                status: 'Status',
+                city: 'City',
+                product: 'Product',
+                shipLevel: 'Ship Level'
+            };
+
+            Object.entries(activeFilters).forEach(([key, val]) => {
+                if (val) {
+                    const chip = document.createElement('div');
+                    chip.className = 'filter-chip';
+                    chip.innerHTML = `${mapping[key]}: ${val.length > 20 ? val.slice(0,20)+'...' : val} <span onclick="removeFilter('${key}')">✕</span>`;
+                    container.appendChild(chip);
+                }
+            });
+        }
+
+        // ─── TABLE ────────────────────────────────────────────────────────────────────
+        function populateFilters(data) {
+            const sel = document.getElementById('vendorFilter');
+            const current = sel.value;
+            sel.innerHTML = '<option value="">All Vendors</option>';
+            const vendors = [...new Set(data.map(r => r.Company))].sort();
+            vendors.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v;
+                opt.textContent = v;
+                sel.appendChild(opt);
+            });
+            sel.value = current;
+        }
+
+        function filterTable() {
+            renderActiveFiltersUI();
+
+            const q = document.getElementById('searchInput').value.toLowerCase();
+
+            let rows = filteredData.filter(r => {
+                // Check interactive object filters
+                if (activeFilters.status && r['order-status'] !== activeFilters.status) return false;
+                if (activeFilters.vendor && r.Company !== activeFilters.vendor) return false;
+                if (activeFilters.product && r['product-name'] !== activeFilters.product) return false;
+                if (activeFilters.city && (r['ship-city'] || '').toUpperCase() !== activeFilters.city.toUpperCase()) return false;
+                if (activeFilters.shipLevel && r['ship-service-level'] !== activeFilters.shipLevel) return false;
+
+                // Check search query
+                if (q) {
+                    const hay = [r['amazon-order-id'], r['product-name'], r['ship-city'], r.Company, r.sku].join(' ').toLowerCase();
+                    if (!hay.includes(q)) return false;
+                }
+                return true;
+            });
+
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            rows.forEach(r => {
+                const s = r['order-status'];
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+      <td class="td-order">${r['amazon-order-id']}</td>
+      <td style="color:var(--text-secondary);font-size:11px">${r['purchase-d']}</td>
+      <td><span class="td-link" onclick="openVendorModal('${r.Company}')">${r.Company}</span></td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px" title="${r['product-name']}">
+        <span class="td-link" onclick="openProductModal('${r['product-name'].replace(/'/g,"\\'")}')">
+          ${r['product-name'].length>42 ? r['product-name'].slice(0,42)+'…' : r['product-name']}
+        </span>
+      </td>
+      <td style="text-align:center">${r.quantity||1}</td>
+      <td class="td-price">₹${(parseFloat(r['item-price'])||0).toFixed(2)}</td>
+      <td style="font-size:11px;color:var(--text-secondary)">${r['item-tax'] ? '₹'+parseFloat(r['item-tax']).toFixed(2) : '—'}</td>
+      <td style="font-size:11px">${r['ship-city']||'—'}</td>
+      <td style="font-size:10px;color:var(--text-secondary)">${r['ship-service-level']||'—'}</td>
+      <td><span class="status-pill ${s.toLowerCase()}"><span class="status-dot"></span>${s}</span></td>`;
+                tbody.appendChild(tr);
+            });
+
+            const total = rows.reduce((s, r) => s + (parseFloat(r['item-price']) || 0), 0);
+            setText('tableCount', rows.length);
+            setText('tableTotal', fmt(total));
+        }
+
+        // ─── MODALS ───────────────────────────────────────────────────────────────────
+        function openVendorModal(vendor) {
+            const rows = filteredData.filter(r => r.Company === vendor);
+            const col = VENDOR_COLORS[vendor] || {
+                bg: '#f1f5f9',
+                text: '#334155',
+                hex: '#334155'
+            };
+            const totalRev = rows.reduce((s, r) => s + (parseFloat(r['item-price']) || 0), 0);
+            const totalTax = rows.reduce((s, r) => s + (parseFloat(r['item-tax']) || 0), 0);
+            const shipped = rows.filter(r => r['order-status'] === 'Shipped').length;
+            const avgAOV = rows.length ? totalRev / rows.length : 0;
+
+            document.getElementById('modalAvatar').style.background = col.bg;
+            document.getElementById('modalAvatar').style.color = col.text;
+            document.getElementById('modalAvatar').textContent = vendor.slice(0, 2).toUpperCase();
+            document.getElementById('modalTitle').textContent = vendor;
+            document.getElementById('modalSubtitle').textContent = `Vendor analysis · ${rows.length} orders · Amazon`;
+
+            document.getElementById('modalStats').innerHTML = `
+    <div class="modal-stat"><div class="modal-stat-val">₹${fmt(totalRev)}</div><div class="modal-stat-lbl">Revenue</div></div>
+    <div class="modal-stat"><div class="modal-stat-val">${rows.length}</div><div class="modal-stat-lbl">Orders</div></div>
+    <div class="modal-stat"><div class="modal-stat-val">${Math.round(shipped/rows.length*100) || 0}%</div><div class="modal-stat-lbl">Shipped</div></div>
+    <div class="modal-stat"><div class="modal-stat-val">₹${fmt(avgAOV)}</div><div class="modal-stat-lbl">Avg AOV</div></div>`;
+
+            document.getElementById('modalThead').innerHTML = `<tr>
+    <th>Order ID</th><th>Date</th><th>Product</th><th>Qty</th><th>Price</th><th>Tax</th><th>City</th><th>Status</th>
+  </tr>`;
+            document.getElementById('modalTbody').innerHTML = rows.map(r => `<tr>
+    <td class="td-order" style="font-size:10px">${r['amazon-order-id']}</td>
+    <td style="color:var(--text-secondary);font-size:10px">${r['purchase-d']}</td>
+    <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px" title="${r['product-name']}">${r['product-name'].slice(0,40)}…</td>
+    <td style="text-align:center;font-size:10px">${r.quantity}</td>
+    <td class="td-price">₹${(parseFloat(r['item-price'])||0).toFixed(2)}</td>
+    <td style="font-size:10px;color:var(--text-secondary)">${r['item-tax'] ? '₹'+parseFloat(r['item-tax']).toFixed(2) : '—'}</td>
+    <td style="font-size:10px">${r['ship-city']||'—'}</td>
+    <td><span class="status-pill ${(r['order-status']||'').toLowerCase()}" style="font-size:9px"><span class="status-dot"></span>${r['order-status']}</span></td>
+  </tr>`).join('');
+
+            currentModalData = rows;
+            currentModalTitle = vendor;
+            document.getElementById('modalOverlay').classList.add('open');
+        }
+
+        function openProductModal(productName) {
+            const rows = filteredData.filter(r => r['product-name'] === productName);
+            const totalRev = rows.reduce((s, r) => s + (parseFloat(r['item-price']) || 0), 0);
+            const totalQty = rows.reduce((s, r) => s + (parseInt(r.quantity) || 0), 0);
+            const shipped = rows.filter(r => r['order-status'] === 'Shipped').length;
+            const vendors = [...new Set(rows.map(r => r.Company))].join(', ');
+
+            document.getElementById('modalAvatar').style.background = 'var(--accent-gold-dim)';
+            document.getElementById('modalAvatar').style.color = 'var(--accent-gold)';
+            document.getElementById('modalAvatar').textContent = '📦';
+            document.getElementById('modalTitle').textContent = productName.length > 40 ? productName.slice(0, 40) + '…' : productName;
+            document.getElementById('modalSubtitle').textContent = `Product analysis · Vendor: ${vendors}`;
+
+            document.getElementById('modalStats').innerHTML = `
+    <div class="modal-stat"><div class="modal-stat-val">₹${fmt(totalRev)}</div><div class="modal-stat-lbl">Revenue</div></div>
+    <div class="modal-stat"><div class="modal-stat-val">${rows.length}</div><div class="modal-stat-lbl">Orders</div></div>
+    <div class="modal-stat"><div class="modal-stat-val">${totalQty}</div><div class="modal-stat-lbl">Units</div></div>
+    <div class="modal-stat"><div class="modal-stat-val">${Math.round(shipped/rows.length*100) || 0}%</div><div class="modal-stat-lbl">Fulfilled</div></div>`;
+
+            document.getElementById('modalThead').innerHTML = `<tr>
+    <th>Order ID</th><th>Date</th><th>Vendor</th><th>Qty</th><th>Price</th><th>City</th><th>Status</th>
+  </tr>`;
+            document.getElementById('modalTbody').innerHTML = rows.map(r => `<tr>
+    <td class="td-order" style="font-size:10px">${r['amazon-order-id']}</td>
+    <td style="color:var(--text-secondary);font-size:10px">${r['purchase-d']}</td>
+    <td style="font-size:10px">${r.Company}</td>
+    <td style="text-align:center;font-size:10px">${r.quantity}</td>
+    <td class="td-price">₹${(parseFloat(r['item-price'])||0).toFixed(2)}</td>
+    <td style="font-size:10px">${r['ship-city']||'—'}</td>
+    <td><span class="status-pill ${(r['order-status']||'').toLowerCase()}" style="font-size:9px"><span class="status-dot"></span>${r['order-status']}</span></td>
+  </tr>`).join('');
+
+            currentModalData = rows;
+            currentModalTitle = productName.slice(0, 30);
+            document.getElementById('modalOverlay').classList.add('open');
+        }
+
+        function closeModal(e) {
+            if (e.target === document.getElementById('modalOverlay')) closeModalDirect();
+        }
+
+        function closeModalDirect() {
+            document.getElementById('modalOverlay').classList.remove('open');
+        }
+
+        // ─── FILE UPLOAD ─────────────────────────────────────────────────────────────
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (!['xlsx', 'xls', 'csv'].includes(ext)) {
+                toast('⚠️ Please upload .xlsx, .xls or .csv');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = e => {
+                try {
+                    let data = [];
+                    if (ext === 'csv') {
+                        const text = e.target.result;
+                        const lines = text.split('\n').filter(l => l.trim());
+                        const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+                        data = lines.slice(1).map(line => {
+                            const vals = line.split(',').map(v => v.trim().replace(/"/g, ''));
+                            const obj = {};
+                            headers.forEach((h, i) => {
+                                obj[h] = vals[i] || '';
+                            });
+                            return obj;
+                        });
+                    } else {
+                        const wb = XLSX.read(e.target.result, {
+                            type: 'binary',
+                            cellDates: true
+                        });
+                        const ws = wb.Sheets[wb.SheetNames[0]];
+                        data = XLSX.utils.sheet_to_json(ws, {
+                            defval: ''
+                        });
+                        data = data.map(r => {
+                            const d = r['purchase-d'];
+                            if (d instanceof Date) r['purchase-d'] = d.toISOString().slice(0, 10);
+                            else if (typeof d === 'number') {
+                                const dt = new Date(Math.round((d - 25569) * 86400 * 1000));
+                                r['purchase-d'] = dt.toISOString().slice(0, 10);
+                            }
+                            return r;
+                        });
+                    }
+                    if (!data.length) {
+                        toast('⚠️ No data found in file');
+                        return;
+                    }
+                    if (!data[0]['Company'] && !data[0]['company'] && !data[0]['amazon-order-id']) {
+                        toast('⚠️ File structure does not match expected format');
+                        return;
+                    }
+                    rawData = data;
+                    localStorage.setItem('orderiq_data', JSON.stringify(rawData));
+                    localStorage.setItem('orderiq_filename', file.name);
+                    document.getElementById('fileBadge').textContent = file.name + ' (cached)';
+                    toast('✅ Loaded ' + data.length + ' records from ' + file.name);
+                    renderAll();
+                } catch (err) {
+                    toast('⚠️ Error reading file: ' + err.message);
+                }
+            };
+            if (ext === 'csv') reader.readAsText(file);
+            else reader.readAsBinaryString(file);
+            event.target.value = '';
+        }
+
+        function clearData() {
+            if (!confirm('Clear cached data and reload default dataset?')) return;
+            localStorage.removeItem('orderiq_data');
+            localStorage.removeItem('orderiq_filename');
+            rawData = SEED_DATA;
+            localStorage.setItem('orderiq_data', JSON.stringify(rawData));
+            localStorage.setItem('orderiq_filename', 'Dummy.xlsx');
+            document.getElementById('fileBadge').textContent = 'Dummy.xlsx (cached)';
+            toast('🗑 Cache cleared. Loaded default data.');
+            renderAll();
+        }
+
+        // ─── EXPORT ───────────────────────────────────────────────────────────────────
+        function downloadCSV() {
+            const data = filteredData;
+            const fields = ['amazon-order-id', 'purchase-d', 'Company', 'product-name', 'quantity', 'item-price', 'item-tax', 'ship-city', 'ship-service-level', 'order-status'];
+            const header = fields.join(',');
+            const rows = data.map(r => fields.map(f => {
+                const v = r[f] || '';
+                return typeof v === 'string' && v.includes(',') ? `"${v}"` : v;
+            }).join(','));
+            const csv = [header, ...rows].join('\n');
+            const blob = new Blob([csv], {
+                type: 'text/csv'
+            });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `orderiq_report_${currentPeriod}_${new Date().toISOString().slice(0,10)}.csv`;
+            a.click();
+            toast('📥 CSV downloaded');
+        }
+
+        function downloadModalCSV() {
+            const fields = ['amazon-order-id', 'purchase-d', 'Company', 'product-name', 'quantity', 'item-price', 'item-tax', 'ship-city', 'order-status'];
+            const header = fields.join(',');
+            const rows = currentModalData.map(r => fields.map(f => {
+                const v = r[f] || '';
+                return typeof v === 'string' && v.includes(',') ? `"${v}"` : v;
+            }).join(','));
+            const csv = [header, ...rows].join('\n');
+            const blob = new Blob([csv], {
+                type: 'text/csv'
+            });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `orderiq_${currentModalTitle.replace(/\s+/g,'_')}.csv`;
+            a.click();
+        }
+
+        function printReport() {
+            window.print();
+            toast('🖨 Opening print dialog…');
+        }
+
+        // ─── UTILS ────────────────────────────────────────────────────────────────────
+        function setText(id, val) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = val;
+        }
+
+        function fmt(n) {
+            return (+n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        }
+
+        function toast(msg) {
+            const c = document.getElementById('toastContainer');
+            const t = document.createElement('div');
+            t.className = 'toast';
+            t.textContent = msg;
+            c.appendChild(t);
+            setTimeout(() => {
+                t.style.opacity = '0';
+                t.style.transform = 'translateX(20px)';
+                t.style.transition = 'all 0.3s';
+                setTimeout(() => t.remove(), 300);
+            }, 2800);
+        }
+
+        function showAlert(msg) {
+            const el = document.getElementById('alertBanner');
+            document.getElementById('alertText').textContent = msg;
+            el.classList.add('show');
+        }
+
+        function hideAlert() {
+            document.getElementById('alertBanner').classList.remove('show');
+        }
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') closeModalDirect();
+        });
+    </script>
+
+    <style media="print">
+        header,
+        .period-tabs,
+        .upload-chip,
+        .btn,
+        .filter-select,
+        .search-box,
+        .active-filters {
+            display: none !important;
+        }
+
+        body {
+            background: #fff;
+            color: #111;
+        }
+
+        .kpi-card,
+        .chart-card,
+        .table-section,
+        .insight-card {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            box-shadow: none;
+        }
+
+        :root {
+            --text-primary: #111;
+            --text-secondary: #555;
+            --bg-card: #f9f9f9;
+        }
+    </style>
+
+</body>
+
+</html>
