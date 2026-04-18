@@ -1,3 +1,6 @@
+![Status](https://img.shields.io/badge/Status-Active-success)
+![Tech](https://img.shields.io/badge/Tech-JavaScript-blue)
+![License](https://img.shields.io/badge/License-MIT-green)
 # 📊 OrderIQ Management Dashboard
 
 🚀 **Smart Order Analytics | Vendor Insights | Decision Support System**
