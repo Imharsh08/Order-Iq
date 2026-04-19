@@ -14,16 +14,6 @@ https://imharsh08.github.io/Order-Iq/
 
 # 🖥️ Dashboard Preview
 
-> 📸 *Add screenshots here for best visual impact*
-
-Recommended screenshots:
-- Dashboard Overview
-- Vendor Drill-down
-- Product Insights
-- KPI Summary
-- City-wise Orders
-
-Example:
 
 ![Dashboard Preview](assets/screenshots/dashboard.png)
 
