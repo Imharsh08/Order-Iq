@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Card Data Uploader</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #drop-area { border: 2px dashed #ccc; border-radius: 20px; width: 300px; height: 200px; margin: auto; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+        #fileElem { display: none; }
+        #file-label { cursor: pointer; }
+        #progress-container { width: 100%; background: #eee; }
+        #progress { width: 0; height: 20px; background: #76c7c0; }
+    </style>
+</head>
+<body>
+    <h1>Job Card Data Uploader</h1>
+    <div id="drop-area">
+        <h2>Drag and drop files here</h2>
+        <p>or</p>
+        <label id="file-label">Select Files<input type="file" id="fileElem" multiple accept=".csv,.xlsx" onchange="handleFiles(this.files)"></label>
+    </div>
+    <div id="progress-container" style="display:none;">
+        <div id="progress"></div>
+    </div>
+    <script>
+        function handleFiles(files) {
+            const fileList = document.createElement('ul');
+            for (const file of files) {
+                const li = document.createElement('li');
+                li.textContent = file.name;
+                fileList.appendChild(li);
+            }
+            document.body.appendChild(fileList);
+            uploadFiles(files);
+        }
+
+        function uploadFiles(files) {
+            const xhr = new XMLHttpRequest();
+            const formData = new FormData();
+            for (const file of files) {
+                formData.append('files[]', file);
+            }
+            xhr.open('POST', '/upload');
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    alert('Files uploaded successfully!');
+                } else {
+                    alert('Error uploading files!');
+                }
+            };
+            xhr.upload.onprogress = function(e) {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    document.getElementById('progress-container').style.display = 'block';
+                    document.getElementById('progress').style.width = percentComplete + '%';
+                }
+            };
+            xhr.send(formData);
+        }
+    </script>
+</body>
+</html>
