@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Transformation Tool</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #upload-area { border: 2px dashed #cccccc; padding: 20px; text-align: center; }
+        #data-preview, #statistics { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Data Transformation Tool</h1>
+    <div id="upload-area">
+        <h2>Drag and Drop Upload</h2>
+        <input type="file" id="file-input" multiple style="display:none;" />
+        <label for="file-input" style="cursor: pointer;">Upload Files (CSV, Excel, JSON)</label>
+        <div id="drop-area">Drop files here</div>
+    </div>
+    <div id="data-preview"></div>
+    <div>
+        <h2>Export Data</h2>
+        <button id="export-csv">Export as CSV</button>
+        <button id="export-excel">Export as Excel</button>
+        <button id="export-json">Export as JSON</button>
+    </div>
+    <div id="statistics"></div>
+    <script>
+        document.getElementById('drop-area').addEventListener('drop', handleDrop);
+        document.getElementById('drop-area').addEventListener('dragover', (e) => e.preventDefault());
+        document.getElementById('file-input').addEventListener('change', handleFiles);
+
+        function handleDrop(event) {
+            event.preventDefault();
+            const files = event.dataTransfer.files;
+            handleFiles({target: {files}});
+        }
+
+        function handleFiles(event) {
+            const files = event.target.files;
+            const preview = document.getElementById('data-preview');
+            preview.innerHTML = '';
+            for (let i = 0; i < files.length; i++) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const text = e.target.result;
+                    preview.innerHTML += `<p>${files[i].name}: <pre>${text}</pre></p>`;
+                    // Call data transformation function here
+                };
+                reader.readAsText(files[i]);
+            }
+        }
+
+        document.getElementById('export-csv').addEventListener('click', () => exportData('csv'));
+        document.getElementById('export-excel').addEventListener('click', () => exportData('excel'));
+        document.getElementById('export-json').addEventListener('click', () => exportData('json'));
+
+        function exportData(format) {
+            // Implement export logic for CSV, Excel, and JSON
+            alert('Export functionality for ' + format );
+        }
+    </script>
+</body>
+</html>
