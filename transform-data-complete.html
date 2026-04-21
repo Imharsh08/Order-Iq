@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transform Data - Job Card</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #333; }
+        .upload-container, .preview-container, .transformation-container { margin-bottom: 20px; }
+        .button { padding: 10px 15px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        .button:hover { background-color: #45a049; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>Transform Job Card Data</h1>
+    <div class="upload-container">
+        <h2>Upload Data</h2>
+        <input type="file" id="fileInput" accept="text/csv" />
+        <button class="button" id="uploadButton">Upload</button>
+    </div>
+    <div class="preview-container" style="display:none;">
+        <h2>Preview Data</h2>
+        <table id="dataPreview">
+            <thead>
+                <tr><th>Column 1</th><th>Column 2</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <div class="transformation-container" style="display:none;">
+        <h2>Transform Data</h2>
+        <button class="button" id="transformButton">Transform</button>
+        <button class="button" id="downloadButton" style="display:none;">Download Transformed Data</button>
+    </div>
+    <script>
+        document.getElementById('uploadButton').addEventListener('click', function() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const content = e.target.result.split('\n').map(row => row.split(','));
+                    const tbody = document.querySelector('#dataPreview tbody');
+                    tbody.innerHTML = '';
+                    content.forEach(row => {
+                        const tr = document.createElement('tr');
+                        row.forEach(cell => {
+                            const td = document.createElement('td');
+                            td.textContent = cell;
+                            tr.appendChild(td);
+                        });
+                        tbody.appendChild(tr);
+                    });
+                    document.querySelector('.preview-container').style.display = 'block';
+                    document.querySelector('.transformation-container').style.display = 'block';
+                };
+                reader.readAsText(file);
+            }
+        });
+        document.getElementById('transformButton').addEventListener('click', function() {
+            // Transformation logic can be added here
+            alert('Transformation complete! You can now download the data.');
+            document.getElementById('downloadButton').style.display = 'block';
+        });
+    </script>
+</body>
+</html>
