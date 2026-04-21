@@ -3,69 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transform Data - Job Card</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        h1 { color: #333; }
-        .upload-container, .preview-container, .transformation-container { margin-bottom: 20px; }
-        .button { padding: 10px 15px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
-        .button:hover { background-color: #45a049; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-    </style>
+    <title>Transform Data</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <h1>Transform Job Card Data</h1>
-    <div class="upload-container">
-        <h2>Upload Data</h2>
-        <input type="file" id="fileInput" accept="text/csv" />
-        <button class="button" id="uploadButton">Upload</button>
-    </div>
-    <div class="preview-container" style="display:none;">
-        <h2>Preview Data</h2>
-        <table id="dataPreview">
-            <thead>
-                <tr><th>Column 1</th><th>Column 2</th></tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
-    <div class="transformation-container" style="display:none;">
-        <h2>Transform Data</h2>
-        <button class="button" id="transformButton">Transform</button>
-        <button class="button" id="downloadButton" style="display:none;">Download Transformed Data</button>
-    </div>
-    <script>
-        document.getElementById('uploadButton').addEventListener('click', function() {
-            const fileInput = document.getElementById('fileInput');
-            const file = fileInput.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const content = e.target.result.split('\n').map(row => row.split(','));
-                    const tbody = document.querySelector('#dataPreview tbody');
-                    tbody.innerHTML = '';
-                    content.forEach(row => {
-                        const tr = document.createElement('tr');
-                        row.forEach(cell => {
-                            const td = document.createElement('td');
-                            td.textContent = cell;
-                            tr.appendChild(td);
-                        });
-                        tbody.appendChild(tr);
-                    });
-                    document.querySelector('.preview-container').style.display = 'block';
-                    document.querySelector('.transformation-container').style.display = 'block';
-                };
-                reader.readAsText(file);
-            }
-        });
-        document.getElementById('transformButton').addEventListener('click', function() {
-            // Transformation logic can be added here
-            alert('Transformation complete! You can now download the data.');
-            document.getElementById('downloadButton').style.display = 'block';
-        });
-    </script>
+    <header>
+        <h1>Data Transformation</h1>
+    </header>
+    <main>
+        <section id="data-preview">
+            <h2>Data Preview</h2>
+            <div id="data-table"></div>
+        </section>
+        <section id="format-selection">
+            <h2>Select Format</h2>
+            <select id="format-dropdown">
+                <option value="csv">CSV</option>
+                <option value="excel">Excel</option>
+                <option value="json">JSON</option>
+            </select>
+        </section>
+        <section id="transformation-engine">
+            <h2>Transformation Engine</h2>
+            <textarea id="transformations" placeholder="Add your transformations here..."></textarea>
+        </section>
+        <section id="statistics-display">
+            <h2>Statistics</h2>
+            <div id="statistics"></div>
+        </section>
+        <section id="download-functionality">
+            <h2>Download</h2>
+            <button id="download-btn">Download</button>
+        </section>
+        <section id="ui-support">
+            <h2>Drag and Drop Support</h2>
+            <div id="drop-area">Drop files here</div>
+        </section>
+    </main>
+    <script src="script.js"></script>
 </body>
 </html>
