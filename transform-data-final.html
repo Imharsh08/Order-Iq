@@ -3,62 +3,189 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data Transformation Tool</title>
+    <title>Transform Data Final</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        #upload-area { border: 2px dashed #cccccc; padding: 20px; text-align: center; }
-        #data-preview, #statistics { margin-top: 20px; }
+        body { 
+            font-family: Arial, sans-serif; 
+            background: linear-gradient(#f0f0f0, #ffffff); 
+            padding: 20px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+        }
+        .container { 
+            width: 100%; 
+            max-width: 800px; 
+            background: #fff; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px; 
+        }
+        h2 { 
+            color: #333; 
+        }
+        #drop-area { 
+            border: 2px dashed #ccc; 
+            border-radius: 20px; 
+            width: 100%; 
+            height: 200px; 
+            text-align: center; 
+            padding: 20px; 
+            margin-bottom: 20px; 
+            transition: background .3s;
+        }
+        #drop-area.hover { 
+            background: #e6ffe6; 
+        }
+        #fileElem { 
+            display: none; 
+        }
+        #preview { 
+            margin-top: 15px;
+            max-height: 300px; 
+            overflow-y: auto; 
+        }
+        .statistics { 
+            margin-top: 20px; 
+            padding: 10px; 
+            background: #f9f9f9; 
+            border-left: 5px solid #4CAF50; 
+        }
+        button { 
+            margin: 10px 0; 
+            padding: 10px 15px; 
+            background-color: #4CAF50;
+            color: white; 
+            border: none;
+            border-radius: 4px; 
+            cursor: pointer; 
+        }
+        button:hover { 
+            background-color: #45a049;
+        }
     </style>
 </head>
 <body>
-    <h1>Data Transformation Tool</h1>
-    <div id="upload-area">
-        <h2>Drag and Drop Upload</h2>
-        <input type="file" id="file-input" multiple style="display:none;" />
-        <label for="file-input" style="cursor: pointer;">Upload Files (CSV, Excel, JSON)</label>
-        <div id="drop-area">Drop files here</div>
+    <div class="container">
+        <h2>Data Transformation Tool</h2>
+        <div id="drop-area">
+            <p>Drag & drop your file here or click to upload</p>
+            <input type="file" id="fileElem" accept=".csv, .xlsx" onchange="handleFiles(this.files)">
+            <label for="fileElem" class="button">Upload File</label>
+        </div>
+        <div id="preview"></div>
+        <div class="statistics"></div>
+        <button id="transformBtn">Transform Data</button>
+        <button id="exportCsvBtn">Export as CSV</button>
+        <button id="exportExcelBtn">Export as Excel</button>
+        <button id="exportJsonBtn">Export as JSON</button>
     </div>
-    <div id="data-preview"></div>
-    <div>
-        <h2>Export Data</h2>
-        <button id="export-csv">Export as CSV</button>
-        <button id="export-excel">Export as Excel</button>
-        <button id="export-json">Export as JSON</button>
-    </div>
-    <div id="statistics"></div>
     <script>
-        document.getElementById('drop-area').addEventListener('drop', handleDrop);
-        document.getElementById('drop-area').addEventListener('dragover', (e) => e.preventDefault());
-        document.getElementById('file-input').addEventListener('change', handleFiles);
+        let fileContent;
+        let data; // placeholder for parsed data
 
-        function handleDrop(event) {
-            event.preventDefault();
-            const files = event.dataTransfer.files;
-            handleFiles({target: {files}});
+        const dropArea = document.getElementById('drop-area');
+        const preview = document.getElementById('preview');
+        const statistics = document.querySelector('.statistics');
+
+        // Prevent default drag behaviors
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+
+        // Highlight drop area when item is dragged over it
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        dropArea.addEventListener('drop', handleDrop, false);
+
+        function preventDefaults (e) {
+            e.preventDefault();
+            e.stopPropagation();
         }
 
-        function handleFiles(event) {
-            const files = event.target.files;
-            const preview = document.getElementById('data-preview');
-            preview.innerHTML = '';
-            for (let i = 0; i < files.length; i++) {
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    const text = e.target.result;
-                    preview.innerHTML += `<p>${files[i].name}: <pre>${text}</pre></p>`;
-                    // Call data transformation function here
-                };
-                reader.readAsText(files[i]);
-            }
+        function highlight() {
+            dropArea.classList.add('hover');
         }
 
-        document.getElementById('export-csv').addEventListener('click', () => exportData('csv'));
-        document.getElementById('export-excel').addEventListener('click', () => exportData('excel'));
-        document.getElementById('export-json').addEventListener('click', () => exportData('json'));
+        function unhighlight() {
+            dropArea.classList.remove('hover');
+        }
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+
+        function handleFiles(files) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                fileContent = event.target.result;
+                displayPreview(fileContent);
+            };
+
+            reader.readAsBinaryString(files[0]);
+        }
+
+        function displayPreview(fileContent) {
+            const workbook = XLSX.read(fileContent, { type: 'binary' });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            data = XLSX.utils.sheet_to_json(worksheet, { header: 1 }); // convert sheet to json
+
+            preview.innerHTML = '<h3>Data Preview</h3>' + '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            calculateStatistics(data);
+        }
+
+        function calculateStatistics(data) {
+            // Example statistics calculations
+            const rowCount = data.length;
+            statistics.innerHTML = `<strong>Total Rows:</strong> ${rowCount}`;
+        }
+
+        document.getElementById('transformBtn').addEventListener('click', transformData);
+
+        function transformData() {
+            // Transformation logic goes here, mapping fields from Job Card to Order-IQ format
+            // Update 'data' variable appropriately
+            preview.innerHTML += '<h3>Transformation Complete!</h3>';
+        }
+
+        document.getElementById('exportCsvBtn').addEventListener('click', function() {
+            exportData('csv');
+        });
+
+        document.getElementById('exportExcelBtn').addEventListener('click', function() {
+            exportData('xlsx');
+        });
+
+        document.getElementById('exportJsonBtn').addEventListener('click', function() {
+            exportData('json');
+        });
 
         function exportData(format) {
-            // Implement export logic for CSV, Excel, and JSON
-            alert('Export functionality for ' + format );
+            let wb = XLSX.utils.book_new();
+            let ws = XLSX.utils.aoa_to_sheet(data);
+            XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+            if (format === 'csv') {
+                XLSX.utils.sheet_to_csv(ws);
+            } else if (format === 'xlsx') {
+                XLSX.writeFile(wb, 'transformed_data.xlsx');
+            } else if (format === 'json') {
+                const json = XLSX.utils.sheet_to_json(ws);
+                const jsonString = JSON.stringify(json, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                saveAs(blob, 'transformed_data.json');
+            }
         }
     </script>
 </body>
